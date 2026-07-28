@@ -8,6 +8,7 @@ from .models import BookmarkNode, FolderNode
 
 __all__ = [
     "collect_empty_folders",
+    "move_children",
     "remove_bookmark",
     "remove_folder",
     "write_bookmarks",
@@ -17,6 +18,14 @@ __all__ = [
 def write_bookmarks(data: dict, path: Path) -> None:
     text = json.dumps(data, ensure_ascii=False, indent=2)
     path.write_text(text, encoding="utf-8")
+
+
+def move_children(source: FolderNode, destination: FolderNode) -> None:
+    """Move all children from source folder into destination folder."""
+    for child in list(source.children):
+        child.parent = destination
+        destination.children.append(child)
+    source.children = []
 
 
 def remove_bookmark(node: BookmarkNode) -> None:
