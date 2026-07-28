@@ -93,7 +93,7 @@ The tool walks the three root trees (`bookmark_bar`, `other`, `synced`) and buil
 
 Two bookmarks with the same normalized URL are considered duplicates, even if their titles differ or they live in different folders.
 
-**Folders** are grouped by a case-insensitive name under the same parent path. Two folders with the same name at the same location are considered duplicates.
+**Folders** are grouped by a case-insensitive name across all parent paths. Two folders with the same name anywhere in the bookmark tree are considered duplicates, even if they live under different parents.
 
 ### Cleanup process
 
@@ -130,3 +130,12 @@ The app follows the XDG Base Directory specification for its own runtime files:
 uv sync
 uv run pytest tests/
 ```
+
+A convenience development runner is included at the repo root:
+
+```bash
+./bookmark-organizer scan --browser brave
+./bookmark-organizer clean --browser chrome --interactive
+```
+
+This runs the CLI via `uv run` from the project directory without needing a global install.

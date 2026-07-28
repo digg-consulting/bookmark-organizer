@@ -17,7 +17,6 @@ XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 
 CONFIG_DIR="${XDG_CONFIG_HOME}/digg/bookmark-organizer"
 CACHE_DIR="${XDG_CACHE_HOME}/digg/bookmark-organizer"
-UV_TOOL_DIR="${XDG_DATA_HOME}/digg/bookmark-organizer/tool"
 
 export XDG_CONFIG_HOME
 export XDG_CACHE_HOME
@@ -82,7 +81,6 @@ mv "${EXTRACTED_DIR}" "${INSTALL_DIR}"
 mkdir -p "${CONFIG_DIR}"
 mkdir -p "${CACHE_DIR}"
 mkdir -p "${BIN_DIR}"
-mkdir -p "${UV_TOOL_DIR}"
 
 cd "${INSTALL_DIR}"
 
@@ -90,7 +88,6 @@ echo "==> Installing Python dependencies (uv sync)..."
 uv sync
 
 echo "==> Removing stale CLI tool artifacts..."
-rm -rf "${UV_TOOL_DIR}"
 rm -f "${CLI_BIN}"
 
 echo "==> Installing CLI on PATH (uv tool install)..."

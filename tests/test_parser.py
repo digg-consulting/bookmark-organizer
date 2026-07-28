@@ -1,6 +1,7 @@
 """Tests for the bookmark parser module."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from bookmark_organizer.parser import load_bookmarks
@@ -21,7 +22,7 @@ def test_load_bookmarks_simple(tmp_path: Path) -> None:
         "version": 1,
     }
     p = tmp_path / "bookmarks.json"
-    p.write_text(__import__("json").dumps(sample), encoding="utf-8")
+    p.write_text(json.dumps(sample), encoding="utf-8")
     data = load_bookmarks(p)
     assert data["version"] == 1
     assert len(data["roots"]["bookmark_bar"]["children"]) == 2

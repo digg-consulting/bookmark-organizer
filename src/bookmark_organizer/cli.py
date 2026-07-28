@@ -8,12 +8,11 @@ from rich.console import Console
 from rich.prompt import Confirm
 
 from .dedup import group_by_normalized_url, group_duplicate_folders
-from .models import BookmarkNode, FolderNode, auto_detect_browser, get_default_bookmarks_path
+from .models import auto_detect_browser, get_default_bookmarks_path
 from .parser import (
-    _build_tree,
-    _collect_bookmarks,
-    _collect_folders,
-    _get_root,
+    build_trees,
+    collect_bookmarks,
+    collect_folders,
     find_duplicate_folders,
     find_duplicate_links,
     load_bookmarks,
@@ -102,19 +101,10 @@ def clean(
     data = load_bookmarks(path)
 
     # Build in-memory trees from all roots so cleanup mutations persist.
-    root_folders: list[tuple[str, FolderNode]] = []
-    for root_key in ("bookmark_bar", "other", "synced"):
-        root = _get_root(data, root_key)
-        if root:
-            root_folder = _build_tree(root, parent=None)
-            if isinstance(root_folder, FolderNode):
-                root_folders.append((root_key, root_folder))
+    root_folders = build_trees(data)
 
-    bookmarks: list[BookmarkNode] = []
-    folders: list[FolderNode] = []
-    for _, root_folder in root_folders:
-        _collect_bookmarks(root_folder, bookmarks)
-        _collect_folders(root_folder, folders)
+    bookmarks = collect_bookmarks(root_folders)
+    folders = collect_folders(root_folders)
 
     link_groups = group_by_normalized_url(bookmarks)
     folder_groups = group_duplicate_folders(folders)
@@ -145,7 +135,6 @@ def clean(
             removed = remove_empty_folders(root_folder)
             if removed:
                 console.print(f"Removed {len(removed)} empty folders.")
-            break
 
     # Sync cleaned trees back into the original JSON structure.
     for root_key, root_folder in root_folders:
@@ -157,7 +146,7 @@ def clean(
 
     write_path = output or path
     if backup:
-        backup_path = path.parent / "Bookmarks.bak"
+        backup_path = write_path.parent / "Bookmarks.bak"
         import shutil as _shutil
         _shutil.copy2(path, backup_path)
         console.print(f"[yellow]Backup saved to {backup_path}[/yellow]")

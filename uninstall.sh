@@ -6,6 +6,8 @@ INSTALL_DIR="${HOME}/.local/share/digg/bookmark-organizer"
 BIN_DIR="${HOME}/.local/bin"
 CLI_BIN="${BIN_DIR}/${APP_NAME}"
 CONFIG_DIR="${HOME}/.config/digg/bookmark-organizer"
+CACHE_DIR="${HOME}/.cache/digg/bookmark-organizer"
+UV_TOOL_DIR="${HOME}/.local/share/digg/bookmark-organizer/tool"
 
 echo "Uninstalling ${APP_NAME}..."
 
@@ -37,6 +39,16 @@ if [ -d "${CONFIG_DIR}" ]; then
     else
         echo "Config directory exists at ${CONFIG_DIR}. Remove manually if desired."
     fi
+fi
+
+if [ -d "${CACHE_DIR}" ]; then
+    echo "==> Removing cache directory ${CACHE_DIR}..."
+    rm -rf "${CACHE_DIR}"
+fi
+
+if [ -d "${UV_TOOL_DIR}" ]; then
+    echo "==> Removing uv tool directory ${UV_TOOL_DIR}..."
+    rm -rf "${UV_TOOL_DIR}"
 fi
 
 echo "Uninstall complete."

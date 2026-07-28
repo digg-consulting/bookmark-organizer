@@ -31,7 +31,7 @@ bookmark-organizer/
 
 - **parser.py**: Loads the browser's `Bookmarks` JSON file and builds an in-memory tree of `FolderNode` and `BookmarkNode` objects. Provides `iter_bookmarks()` and `iter_folders()` to traverse the tree.
 - **normalizer.py**: Normalizes URLs by lowercasing scheme/host, stripping default ports, sorting query parameters, and removing fragments. Used by dedup logic.
-- **dedup.py**: Groups bookmarks by normalized URL and folders by (parent_path, name) to find duplicates.
+- **dedup.py**: Groups bookmarks by normalized URL and folders by case-insensitive name to find duplicates.
 - **cleanup.py**: Implements interactive (prompt user) and automatic (keep first) cleanup strategies. Also handles empty folder removal.
 - **writer.py**: Serializes the in-memory tree back to the Bookmarks JSON file and provides node removal utilities.
 - **xdg.py**: Resolves XDG Base Directory paths under the `digg` namespace for config, cache, data, and bin directories.

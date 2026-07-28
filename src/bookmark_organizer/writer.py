@@ -7,16 +7,11 @@ from pathlib import Path
 from .models import BookmarkNode, FolderNode
 
 __all__ = [
-    "build_tree_dict",
     "collect_empty_folders",
     "remove_bookmark",
     "remove_folder",
     "write_bookmarks",
 ]
-
-
-def build_tree_dict(node: FolderNode | BookmarkNode) -> dict:
-    return node.to_dict()
 
 
 def write_bookmarks(data: dict, path: Path) -> None:

@@ -8,10 +8,11 @@ from typing import Any, cast
 from .models import BookmarkNode, DuplicateFolderGroup, DuplicateLinkGroup, FolderNode
 
 __all__ = [
+    "build_trees",
+    "collect_bookmarks",
+    "collect_folders",
     "find_duplicate_folders",
     "find_duplicate_links",
-    "iter_bookmarks",
-    "iter_folders",
     "load_bookmarks",
 ]
 
@@ -51,16 +52,32 @@ def _build_tree(node: dict, parent: FolderNode | None = None) -> FolderNode | Bo
     return None
 
 
-def iter_bookmarks(data: dict) -> list[BookmarkNode]:
-    bookmarks: list[BookmarkNode] = []
+def build_trees(data: dict[str, Any]) -> list[tuple[str, FolderNode]]:
+    """Build in-memory folder trees for all bookmark roots."""
+    root_folders: list[tuple[str, FolderNode]] = []
     for root_key in ("bookmark_bar", "other", "synced"):
         root = _get_root(data, root_key)
-        if not root:
-            continue
-        root_folder = _build_tree(root, parent=None)
-        if isinstance(root_folder, FolderNode):
-            _collect_bookmarks(root_folder, bookmarks)
+        if root:
+            root_folder = _build_tree(root, parent=None)
+            if isinstance(root_folder, FolderNode):
+                root_folders.append((root_key, root_folder))
+    return root_folders
+
+
+def collect_bookmarks(root_folders: list[tuple[str, FolderNode]]) -> list[BookmarkNode]:
+    """Collect all bookmark nodes from the given root trees."""
+    bookmarks: list[BookmarkNode] = []
+    for _, root_folder in root_folders:
+        _collect_bookmarks(root_folder, bookmarks)
     return bookmarks
+
+
+def collect_folders(root_folders: list[tuple[str, FolderNode]]) -> list[FolderNode]:
+    """Collect all folder nodes from the given root trees."""
+    folders: list[FolderNode] = []
+    for _, root_folder in root_folders:
+        _collect_folders(root_folder, folders)
+    return folders
 
 
 def _collect_bookmarks(node: FolderNode, out: list[BookmarkNode]) -> None:
@@ -74,6 +91,28 @@ def _collect_bookmarks(node: FolderNode, out: list[BookmarkNode]) -> None:
                 stack.append(child)
 
 
+def _collect_folders(node: FolderNode, out: list[FolderNode]) -> None:
+    stack = [node]
+    while stack:
+        current = stack.pop(0)
+        for child in current.children:
+            if isinstance(child, FolderNode):
+                out.append(child)
+                stack.append(child)
+
+
+def iter_bookmarks(data: dict) -> list[BookmarkNode]:
+    bookmarks: list[BookmarkNode] = []
+    for root_key in ("bookmark_bar", "other", "synced"):
+        root = _get_root(data, root_key)
+        if not root:
+            continue
+        root_folder = _build_tree(root, parent=None)
+        if isinstance(root_folder, FolderNode):
+            _collect_bookmarks(root_folder, bookmarks)
+    return bookmarks
+
+
 def iter_folders(data: dict) -> list[FolderNode]:
     folders: list[FolderNode] = []
     for root_key in ("bookmark_bar", "other", "synced"):
@@ -84,16 +123,6 @@ def iter_folders(data: dict) -> list[FolderNode]:
         if isinstance(root_folder, FolderNode):
             _collect_folders(root_folder, folders)
     return folders
-
-
-def _collect_folders(node: FolderNode, out: list[FolderNode]) -> None:
-    stack = [node]
-    while stack:
-        current = stack.pop(0)
-        for child in current.children:
-            if isinstance(child, FolderNode):
-                out.append(child)
-                stack.append(child)
 
 
 def find_duplicate_links(data: dict) -> list[DuplicateLinkGroup]:
