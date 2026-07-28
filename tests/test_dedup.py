@@ -37,8 +37,21 @@ def test_group_duplicate_folders_detects_duplicates():
     groups: list[DuplicateFolderGroup] = group_duplicate_folders([f1, f2])
     assert len(groups) == 1
     assert groups[0].name == "news"
-    assert groups[0].parent_path == "Root"
     assert len(groups[0].items) == 2
+
+
+def test_group_duplicate_folders_detects_cross_parent_duplicates():
+    root1 = FolderNode(name="Bookmarks bar")
+    root2 = FolderNode(name="Other bookmarks")
+    f1 = FolderNode(name="AI", parent=root1)
+    f2 = FolderNode(name="AI", parent=root2)
+    groups: list[DuplicateFolderGroup] = group_duplicate_folders([f1, f2])
+    assert len(groups) == 1
+    assert groups[0].name == "ai"
+    assert len(groups[0].items) == 2
+    paths = {item.path for item in groups[0].items}
+    assert "Bookmarks bar" in paths
+    assert "Other bookmarks" in paths
 
 
 def test_group_duplicate_folders_no_duplicates():

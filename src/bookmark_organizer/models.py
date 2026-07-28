@@ -78,7 +78,6 @@ class DuplicateLinkGroup:
 @dataclass
 class DuplicateFolderGroup:
     name: str
-    parent_path: str
     items: list[FolderNode] = field(default_factory=list)
 
 

@@ -22,12 +22,12 @@ def group_by_normalized_url(bookmarks: list[BookmarkNode]) -> list[DuplicateLink
 
 
 def group_duplicate_folders(folders: list[FolderNode]) -> list[DuplicateFolderGroup]:
-    groups: dict[tuple[str, str], list[FolderNode]] = defaultdict(list)
+    groups: dict[str, list[FolderNode]] = defaultdict(list)
     for folder in folders:
-        key = (folder.path, folder.name.lower())
+        key = folder.name.lower()
         groups[key].append(folder)
     return [
-        DuplicateFolderGroup(name=name, parent_path=parent_path, items=items)
-        for (parent_path, name), items in groups.items()
+        DuplicateFolderGroup(name=name, items=items)
+        for name, items in groups.items()
         if len(items) > 1
     ]

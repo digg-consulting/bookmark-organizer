@@ -1,6 +1,8 @@
 """Interactive and automatic cleanup logic for duplicate bookmarks."""
 from __future__ import annotations
 
+from typing import Literal
+
 from rich.console import Console
 from rich.prompt import Prompt
 
@@ -19,26 +21,32 @@ __all__ = [
 
 
 console = Console()
+_Action = Literal["keep", "delete", "all", "quit"]
 
 
-def prompt_keep_choice(group: DuplicateLinkGroup) -> int | None:
+def prompt_keep_choice(group: DuplicateLinkGroup) -> tuple[_Action, int | None]:
     console.print(f"\n[bold cyan]Link group:[/bold cyan] {group.normalized_url}")
     for idx, item in enumerate(group.items, 1):
-        marker = " [green](keep)[/green]" if idx == 1 else ""
-        console.print(f"  {idx}. {item.name} — {item.path}{marker}")
-    console.print("  [bold]Actions:[/bold] [K]eep first  [S]elect  [D]elete all  [Q]uit")
-    choice = Prompt.ask("Choose action", choices=["k", "s", "d", "q"], default="k").lower()
+        console.print(f"  {idx}. {item.name} — {item.path}")
+    console.print("  [bold]Actions:[/bold] [K]eep first  [S]elect keep  [D]elete  [A]ll  [Q]uit")
+    choice = Prompt.ask("Choose action", choices=["k", "s", "d", "a", "q"], default="k").lower()
     if choice == "k":
-        return 1
+        return "keep", 1
+    if choice == "a":
+        return "all", None
     if choice == "d":
-        return 0
+        console.print("Delete which (enter number):")
+        for idx, item in enumerate(group.items, 1):
+            console.print(f"  {idx}. {item.name} — {item.path}")
+        sel = Prompt.ask("Delete #", choices=[str(i) for i in range(1, len(group.items) + 1)])
+        return "delete", int(sel)
     if choice == "s":
         console.print("Select which to keep (enter number):")
         for idx, item in enumerate(group.items, 1):
             console.print(f"  {idx}. {item.name} — {item.path}")
         sel = Prompt.ask("Keep #", choices=[str(i) for i in range(1, len(group.items) + 1)])
-        return int(sel)
-    return None
+        return "keep", int(sel)
+    return "quit", None
 
 
 def interactive_cleanup_links(
@@ -47,37 +55,55 @@ def interactive_cleanup_links(
     kept: list[BookmarkNode] = []
     deleted: list[BookmarkNode] = []
     for group in groups:
-        keep_idx = prompt_keep_choice(group)
-        if keep_idx is None:
+        action, value = prompt_keep_choice(group)
+        if action == "quit":
             console.print("[yellow]Skipped remaining groups.[/yellow]")
             break
-        for idx, item in enumerate(group.items, 1):
-            if idx == keep_idx:
-                kept.append(item)
-            else:
+        if action == "all":
+            for item in group.items:
                 remove_bookmark(item)
                 deleted.append(item)
+            continue
+        if action == "keep":
+            for idx, item in enumerate(group.items, 1):
+                if idx == value:
+                    kept.append(item)
+                else:
+                    remove_bookmark(item)
+                    deleted.append(item)
+        elif action == "delete":
+            for idx, item in enumerate(group.items, 1):
+                if idx == value:
+                    remove_bookmark(item)
+                    deleted.append(item)
+                else:
+                    kept.append(item)
     return kept, deleted
 
 
-def prompt_keep_folder(group: DuplicateFolderGroup) -> int | None:
-    console.print(f"\n[bold cyan]Folder group:[/bold cyan] '{group.name}' under '{group.parent_path}'")
+def prompt_keep_folder(group: DuplicateFolderGroup) -> tuple[_Action, int | None]:
+    console.print(f"\n[bold cyan]Folder group:[/bold cyan] '{group.name}'")
     for idx, item in enumerate(group.items, 1):
-        marker = " [green](keep)[/green]" if idx == 1 else ""
-        console.print(f"  {idx}. {item.name}{marker}")
-    console.print("  [bold]Actions:[/bold] [K]eep first  [S]elect  [D]elete all  [Q]uit")
-    choice = Prompt.ask("Choose action", choices=["k", "s", "d", "q"], default="k").lower()
+        console.print(f"  {idx}. {item.name} — {item.path}")
+    console.print("  [bold]Actions:[/bold] [K]eep first  [S]elect keep  [D]elete  [A]ll  [Q]uit")
+    choice = Prompt.ask("Choose action", choices=["k", "s", "d", "a", "q"], default="k").lower()
     if choice == "k":
-        return 1
+        return "keep", 1
+    if choice == "a":
+        return "all", None
     if choice == "d":
-        return 0
+        console.print("Delete which (enter number):")
+        for idx, item in enumerate(group.items, 1):
+            console.print(f"  {idx}. {item.name} — {item.path}")
+        sel = Prompt.ask("Delete #", choices=[str(i) for i in range(1, len(group.items) + 1)])
+        return "delete", int(sel)
     if choice == "s":
         console.print("Select which to keep (enter number):")
         for idx, item in enumerate(group.items, 1):
-            console.print(f"  {idx}. {item.name}")
+            console.print(f"  {idx}. {item.name} — {item.path}")
         sel = Prompt.ask("Keep #", choices=[str(i) for i in range(1, len(group.items) + 1)])
-        return int(sel)
-    return None
+        return "keep", int(sel)
+    return "quit", None
 
 
 def interactive_cleanup_folders(
@@ -86,16 +112,29 @@ def interactive_cleanup_folders(
     kept: list[FolderNode] = []
     deleted: list[FolderNode] = []
     for group in groups:
-        keep_idx = prompt_keep_folder(group)
-        if keep_idx is None:
+        action, value = prompt_keep_folder(group)
+        if action == "quit":
             console.print("[yellow]Skipped remaining groups.[/yellow]")
             break
-        for idx, item in enumerate(group.items, 1):
-            if idx == keep_idx:
-                kept.append(item)
-            else:
+        if action == "all":
+            for item in group.items:
                 remove_folder(item)
                 deleted.append(item)
+            continue
+        if action == "keep":
+            for idx, item in enumerate(group.items, 1):
+                if idx == value:
+                    kept.append(item)
+                else:
+                    remove_folder(item)
+                    deleted.append(item)
+        elif action == "delete":
+            for idx, item in enumerate(group.items, 1):
+                if idx == value:
+                    remove_folder(item)
+                    deleted.append(item)
+                else:
+                    kept.append(item)
     return kept, deleted
 
 
