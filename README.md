@@ -2,6 +2,64 @@
 
 CLI utility to detect and clean up duplicate bookmarks in Brave and Chrome.
 
+## Installation
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/digg-consulting/bookmark-organizer/main/install.sh | bash
+```
+
+## Update
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/digg-consulting/bookmark-organizer/main/update.sh | bash
+```
+
+## Uninstall
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/digg-consulting/bookmark-organizer/main/uninstall.sh | bash
+```
+
+## Usage
+
+Scan for duplicate bookmarks without changing anything:
+
+```bash
+bookmark-organizer scan --browser brave
+bookmark-organizer scan --browser chrome
+```
+
+Clean up duplicates interactively:
+
+```bash
+bookmark-organizer clean --browser brave --interactive
+```
+
+Auto-clean without prompts:
+
+```bash
+bookmark-organizer clean --browser brave --auto
+```
+
+Preview changes without writing:
+
+```bash
+bookmark-organizer clean --browser brave --dry-run
+```
+
+Remove empty folders after cleanup:
+
+```bash
+bookmark-organizer clean --browser brave --remove-empty
+```
+
+Scan only links or only folders:
+
+```bash
+bookmark-organizer scan --browser brave --links --no-folders
+bookmark-organizer clean --browser brave --folders --no-links
+```
+
 ## How it works
 
 `bookmark-organizer` reads your browser's `Bookmarks` JSON file, analyzes it for duplicate entries, and optionally writes a cleaned version back to disk.
@@ -65,52 +123,6 @@ The app follows the XDG Base Directory specification for its own runtime files:
 | `XDG_CONFIG_HOME` | `~/.config/digg/bookmark-organizer` |
 | `XDG_CACHE_HOME` | `~/.cache/digg/bookmark-organizer` |
 | `XDG_DATA_HOME` | `~/.local/share/digg/bookmark-organizer` |
-
-## Installation
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/digg-consulting/bookmark-organizer/main/install.sh | bash
-```
-
-## Usage
-
-Scan for duplicate bookmarks without changing anything:
-
-```bash
-bookmark-organizer scan --browser brave
-bookmark-organizer scan --browser chrome
-```
-
-Clean up duplicates interactively:
-
-```bash
-bookmark-organizer clean --browser brave --interactive
-```
-
-Auto-clean without prompts:
-
-```bash
-bookmark-organizer clean --browser brave --auto
-```
-
-Preview changes without writing:
-
-```bash
-bookmark-organizer clean --browser brave --dry-run
-```
-
-Remove empty folders after cleanup:
-
-```bash
-bookmark-organizer clean --browser brave --remove-empty
-```
-
-Scan only links or only folders:
-
-```bash
-bookmark-organizer scan --browser brave --links --no-folders
-bookmark-organizer clean --browser brave --folders --no-links
-```
 
 ## Development
 
