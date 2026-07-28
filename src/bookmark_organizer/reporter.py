@@ -36,8 +36,10 @@ def print_duplicate_folders(groups: list[DuplicateFolderGroup]) -> None:
     table.add_column("Group", style="cyan")
     table.add_column("Folder Name", style="white")
     table.add_column("Parent Path", style="yellow")
+    table.add_column("Full Path", style="green")
     for i, group in enumerate(groups, 1):
         for item in group.items:
-            table.add_row(str(i), group.name, group.parent_path)
+            full_path = f"{group.parent_path}/{group.name}" if group.parent_path != "(root)" else group.name
+            table.add_row(str(i), group.name, group.parent_path, full_path)
     console.print(table)
     console.print(f"[bold]Total duplicate folder groups: {len(groups)}[/bold]")
