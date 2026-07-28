@@ -2,7 +2,10 @@
 set -euo pipefail
 
 APP_NAME="bookmark-organizer"
+REPO="digg-consulting/bookmark-organizer"
+BRANCH="main"
 INSTALL_DIR="${HOME}/.local/share/digg/bookmark-organizer"
+INSTALL_PARENT="${HOME}/.local/share/digg"
 BIN_DIR="${HOME}/.local/bin"
 CLI_BIN="${BIN_DIR}/${APP_NAME}"
 
@@ -13,7 +16,25 @@ if [ ! -d "${INSTALL_DIR}" ] || [ ! -f "${INSTALL_DIR}/src/bookmark_organizer/cl
 fi
 
 echo "Updating ${APP_NAME}..."
-git -C "${INSTALL_DIR}" pull --ff-only
+
+if [ -d "${INSTALL_DIR}/.git" ]; then
+    git -C "${INSTALL_DIR}" pull --ff-only
+else
+    echo "==> Installation was created from a tarball (no .git directory)."
+    echo "==> Falling back to tarball update..."
+    TMP_TARBALL="$(mktemp /tmp/bookmark-organizer-XXXXXX.tar.gz)"
+    curl -fsSL "https://github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz" -o "${TMP_TARBALL}"
+    echo "==> Extracting..."
+    tar -xzf "${TMP_TARBALL}" -C "${INSTALL_PARENT}"
+    rm -f "${TMP_TARBALL}"
+    EXTRACTED_DIR="$(find "${INSTALL_PARENT}" -maxdepth 1 -type d -name "${APP_NAME}-*" | head -n 1)"
+    if [ -z "$EXTRACTED_DIR" ] || [ ! -d "$EXTRACTED_DIR" ]; then
+        echo "Error: could not find extracted directory." >&2
+        exit 1
+    fi
+    rm -rf "${INSTALL_DIR}"
+    mv "${EXTRACTED_DIR}" "${INSTALL_DIR}"
+fi
 
 echo "Syncing dependencies with uv..."
 cd "${INSTALL_DIR}"
@@ -21,6 +42,6 @@ uv sync
 
 echo "Reinstalling CLI..."
 uv tool uninstall "${APP_NAME}" 2>/dev/null || true
-uv tool install --force -e .
+uv tool install --force .
 
 echo "Update complete."
