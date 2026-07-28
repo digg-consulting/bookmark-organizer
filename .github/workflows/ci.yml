@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+      - uses: astral-sh/setup-uv@d269b9917d8e33f7165632f15cc38a13726f64b5
+        with:
+          enable-cache: true
+      - run: uv sync
+      - run: uv run pytest tests/ -v
+      - run: uv run ruff check src/ tests/
+      - run: uv run mypy src/ tests/
+      - run: bash -n install.sh
+      - run: bash -n uninstall.sh
+      - run: bash -n update.sh
