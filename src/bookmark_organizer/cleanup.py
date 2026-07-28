@@ -90,7 +90,7 @@ def _prompt_delete_folder_with_children(folder_to_delete: FolderNode, kept_folde
     console.print("  [bold]What should happen to these bookmarks?[/bold]")
     console.print("  [D]elete them with the folder")
     console.print("  [M]ove them into the kept folder")
-    choice = Prompt.ask("Choose action", choices=["d", "m"], default="d").lower()
+    choice = Prompt.ask("Choose action", choices=["d", "m"], default="m").lower()
     if choice == "m":
         move_children(folder_to_delete, kept_folder)
 
