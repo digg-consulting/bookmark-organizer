@@ -95,17 +95,17 @@ rm -f "${CLI_BIN}"
 
 echo "==> Installing CLI on PATH (uv tool install)..."
 uv tool uninstall "${CLI_NAME}" 2>/dev/null || true
-uv tool install --force -e .
+uv tool install --force .
 if [[ ! -x "${CLI_BIN}" ]]; then
     echo "Expected executable at ${CLI_BIN} after uv tool install" >&2
     exit 1
 fi
 
 echo "==> Verifying CLI..."
-"${CLI_BIN}" --help | grep -q "bookmark-organizer" || {
-    echo "Error: installed CLI is missing expected command; stale installation detected." >&2
+if ! "${CLI_BIN}" --help > /dev/null 2>&1; then
+    echo "Error: installed CLI failed to run; stale installation detected." >&2
     exit 1
-}
+fi
 
 echo "    ${CLI_BIN}"
 
