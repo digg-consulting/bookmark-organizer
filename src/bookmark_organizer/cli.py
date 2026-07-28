@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.prompt import Confirm
 
 from .dedup import group_by_normalized_url, group_duplicate_folders
-from .models import BookmarkNode, FolderNode, get_default_bookmarks_path
+from .models import BookmarkNode, FolderNode, auto_detect_browser, get_default_bookmarks_path
 from .parser import (
     _build_tree,
     _collect_bookmarks,
@@ -43,12 +43,19 @@ _OUTPUT_OPTION = typer.Option(
 
 
 def _browser_callback(ctx: typer.Context, value: str) -> str:
-    if value not in ("brave", "chrome"):
-        raise typer.BadParameter("Browser must be 'brave' or 'chrome'")
+    if value not in ("auto", "brave", "chrome", "chromium"):
+        raise typer.BadParameter("Browser must be 'auto', 'brave', 'chrome', or 'chromium'")
     return value
 
 
 def _resolve_path(input_path: Path | None, browser: str) -> Path:
+    if browser == "auto" and input_path is None:
+        detected = auto_detect_browser()
+        if not detected:
+            console.print("[red]No supported browser bookmarks found. Install Brave, Chrome, or Chromium, or pass --browser explicitly.[/red]")
+            raise typer.Exit(1)
+        browser = detected
+        console.print(f"[yellow]Auto-detected browser: {detected}[/yellow]")
     path = input_path or get_default_bookmarks_path(browser)
     if not path.exists():
         console.print(f"[red]Bookmarks file not found: {path}[/red]")
@@ -59,7 +66,7 @@ def _resolve_path(input_path: Path | None, browser: str) -> Path:
 @app.command()
 def scan(
     input_path: Path | None = _INPUT_PATH_SCAN,
-    browser: str = typer.Option("brave", "--browser", "-b", help="Browser to scan: brave or chrome", callback=_browser_callback),
+    browser: str = typer.Option("auto", "--browser", "-b", help="Browser to scan: auto, brave, chrome, or chromium", callback=_browser_callback),
     links: bool = typer.Option(True, "--links/--no-links", help="Scan for duplicate links"),
     folders: bool = typer.Option(True, "--folders/--no-folders", help="Scan for duplicate folders"),
 ) -> None:
@@ -76,11 +83,12 @@ def scan(
 @app.command()
 def clean(
     input_path: Path | None = _INPUT_PATH_CLEAN,
-    browser: str = typer.Option("brave", "--browser", "-b", help="Browser to clean: brave or chrome", callback=_browser_callback),
+    browser: str = typer.Option("auto", "--browser", "-b", help="Browser to clean: auto, brave, chrome, or chromium", callback=_browser_callback),
     interactive: bool = typer.Option(True, "--interactive/--auto", help="Interactive cleanup mode"),
     remove_empty: bool = typer.Option(False, "--remove-empty", help="Remove empty folders after cleanup"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print changes without writing"),
     output: Path | None = _OUTPUT_OPTION,
+    backup: bool = typer.Option(False, "--backup", help="Create Bookmarks.bak before writing changes"),
 ) -> None:
     from .cleanup import (
         auto_cleanup_folders,
@@ -148,6 +156,12 @@ def clean(
         raise typer.Exit(0)
 
     write_path = output or path
+    if backup:
+        backup_path = path.parent / "Bookmarks.bak"
+        import shutil as _shutil
+        _shutil.copy2(path, backup_path)
+        console.print(f"[yellow]Backup saved to {backup_path}[/yellow]")
+
     if Confirm.ask(f"Write changes to {write_path}?", default=True):
         write_bookmarks(data, write_path)
         console.print(f"[green]Changes written to {write_path}[/green]")

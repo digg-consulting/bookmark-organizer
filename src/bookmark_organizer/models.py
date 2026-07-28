@@ -12,6 +12,7 @@ __all__ = [
     "DuplicateFolderGroup",
     "DuplicateLinkGroup",
     "FolderNode",
+    "auto_detect_browser",
     "get_default_bookmarks_path",
 ]
 
@@ -82,6 +83,8 @@ class DuplicateFolderGroup:
 
 
 def get_default_bookmarks_path(browser: str = "brave") -> Path:
+    if browser.lower() == "auto":
+        browser = auto_detect_browser() or "brave"
     if os.name == "posix":
         candidates = []
         if browser.lower() == "brave":
@@ -99,3 +102,18 @@ def get_default_bookmarks_path(browser: str = "brave") -> Path:
             if c.exists():
                 return c
     return app_data_dir() / "default_bookmarks.json"
+
+
+def auto_detect_browser() -> str | None:
+    """Return 'brave', 'chrome', or 'chromium' if a Bookmarks file is found."""
+    checks = [
+        ("brave", Path.home() / "Library" / "Application Support" / "BraveSoftware" / "Brave-Browser" / "Default" / "Bookmarks"),
+        ("brave", Path.home() / ".config" / "BraveSoftware" / "Brave-Browser" / "Default" / "Bookmarks"),
+        ("chrome", Path.home() / "Library" / "Application Support" / "Google" / "Chrome" / "Default" / "Bookmarks"),
+        ("chrome", Path.home() / ".config" / "google-chrome" / "Default" / "Bookmarks"),
+        ("chromium", Path.home() / ".config" / "chromium" / "Default" / "Bookmarks"),
+    ]
+    for browser, path in checks:
+        if path.exists():
+            return browser
+    return None
