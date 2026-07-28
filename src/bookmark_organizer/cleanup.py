@@ -81,6 +81,31 @@ def interactive_cleanup_links(
     return kept, deleted
 
 
+def _prompt_delete_folder_with_children(folder_to_delete: FolderNode, kept_folder: FolderNode) -> None:
+    """Prompt user about bookmarks in a folder being deleted."""
+    child_count = sum(1 for _ in _iter_bookmark_nodes(folder_to_delete))
+    if child_count == 0:
+        return
+    console.print(f"[yellow]Warning: '{folder_to_delete.name}' contains {child_count} bookmark(s).[/yellow]")
+    console.print("  [bold]What should happen to these bookmarks?[/bold]")
+    console.print("  [D]elete them with the folder")
+    console.print("  [M]ove them into the kept folder")
+    choice = Prompt.ask("Choose action", choices=["d", "m"], default="d").lower()
+    if choice == "m":
+        move_children(folder_to_delete, kept_folder)
+
+
+def _iter_bookmark_nodes(node: FolderNode):
+    """Iterate all bookmark nodes under a folder."""
+    stack = list(node.children)
+    while stack:
+        child = stack.pop(0)
+        if isinstance(child, BookmarkNode):
+            yield child
+        elif isinstance(child, FolderNode):
+            stack.extend(child.children)
+
+
 def prompt_keep_folder(group: DuplicateFolderGroup) -> tuple[_Action, int | None]:
     console.print(f"\n[bold cyan]Folder group:[/bold cyan] '{group.name}'")
     for idx, item in enumerate(group.items, 1):
@@ -137,20 +162,15 @@ def interactive_cleanup_folders(
                     remove_folder(item)
                     deleted.append(item)
             continue
-        if action == "keep":
+        if action in ("keep", "delete"):
+            assert value is not None
             for idx, item in enumerate(group.items, 1):
                 if idx == value:
                     kept.append(item)
                 else:
+                    _prompt_delete_folder_with_children(item, group.items[value - 1])
                     remove_folder(item)
                     deleted.append(item)
-        elif action == "delete":
-            for idx, item in enumerate(group.items, 1):
-                if idx == value:
-                    remove_folder(item)
-                    deleted.append(item)
-                else:
-                    kept.append(item)
     return kept, deleted
 
 
