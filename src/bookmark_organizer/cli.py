@@ -7,9 +7,12 @@ import typer
 from rich.console import Console
 from rich.prompt import Confirm
 
-from .models import FolderNode, get_default_bookmarks_path
+from .dedup import group_by_normalized_url, group_duplicate_folders
+from .models import BookmarkNode, FolderNode, get_default_bookmarks_path
 from .parser import (
     _build_tree,
+    _collect_bookmarks,
+    _collect_folders,
     _get_root,
     find_duplicate_folders,
     find_duplicate_links,
@@ -30,6 +33,12 @@ _INPUT_PATH_SCAN = typer.Argument(
 _INPUT_PATH_CLEAN = typer.Argument(
     None,
     help="Path to Bookmarks JSON file. Defaults to live browser profile if available.",
+)
+_OUTPUT_OPTION = typer.Option(
+    None,
+    "--output",
+    "-o",
+    help="Write cleaned bookmarks to this file instead of the input file",
 )
 
 
@@ -71,6 +80,7 @@ def clean(
     interactive: bool = typer.Option(True, "--interactive/--auto", help="Interactive cleanup mode"),
     remove_empty: bool = typer.Option(False, "--remove-empty", help="Remove empty folders after cleanup"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print changes without writing"),
+    output: Path | None = _OUTPUT_OPTION,
 ) -> None:
     from .cleanup import (
         auto_cleanup_folders,
@@ -82,8 +92,24 @@ def clean(
 
     path = _resolve_path(input_path, browser)
     data = load_bookmarks(path)
-    link_groups = find_duplicate_links(data)
-    folder_groups = find_duplicate_folders(data)
+
+    # Build in-memory trees from all roots so cleanup mutations persist.
+    root_folders: list[tuple[str, FolderNode]] = []
+    for root_key in ("bookmark_bar", "other", "synced"):
+        root = _get_root(data, root_key)
+        if root:
+            root_folder = _build_tree(root, parent=None)
+            if isinstance(root_folder, FolderNode):
+                root_folders.append((root_key, root_folder))
+
+    bookmarks: list[BookmarkNode] = []
+    folders: list[FolderNode] = []
+    for _, root_folder in root_folders:
+        _collect_bookmarks(root_folder, bookmarks)
+        _collect_folders(root_folder, folders)
+
+    link_groups = group_by_normalized_url(bookmarks)
+    folder_groups = group_duplicate_folders(folders)
 
     if not link_groups and not folder_groups:
         console.print("[green]No duplicates found.[/green]")
@@ -107,23 +133,24 @@ def clean(
             console.print(f"Kept {len(kept_folders)} folders, deleted {len(deleted_folders)} folders.")
 
     if remove_empty:
-        root_folder = None
-        for root_key in ("bookmark_bar", "other", "synced"):
-            root = _get_root(data, root_key)
-            if root:
-                root_folder = _build_tree(root, parent=None)
-                if isinstance(root_folder, FolderNode):
-                    removed = remove_empty_folders(root_folder)
-                    console.print(f"Removed {len(removed)} empty folders.")
-                    break
+        for root_key, root_folder in root_folders:
+            removed = remove_empty_folders(root_folder)
+            if removed:
+                console.print(f"Removed {len(removed)} empty folders.")
+            break
+
+    # Sync cleaned trees back into the original JSON structure.
+    for root_key, root_folder in root_folders:
+        data["roots"][root_key]["children"] = [c.to_dict() for c in root_folder.children]
 
     if dry_run:
         console.print("[yellow]Dry run complete. No changes written.[/yellow]")
         raise typer.Exit(0)
 
-    if Confirm.ask("Write changes to file?", default=True):
-        write_bookmarks(data, path)
-        console.print(f"[green]Changes written to {path}[/green]")
+    write_path = output or path
+    if Confirm.ask(f"Write changes to {write_path}?", default=True):
+        write_bookmarks(data, write_path)
+        console.print(f"[green]Changes written to {write_path}[/green]")
     else:
         console.print("[yellow]Changes discarded.[/yellow]")
 

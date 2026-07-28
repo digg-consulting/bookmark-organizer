@@ -24,3 +24,16 @@ jobs:
       - run: bash -n install.sh
       - run: bash -n uninstall.sh
       - run: bash -n update.sh
+
+  install-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+      - uses: astral-sh/setup-uv@d269b9917d8e33f7165632f15cc38a13726f64b5
+        with:
+          enable-cache: true
+      - run: uv sync
+      - run: uv run pytest tests/test_install.py -v
