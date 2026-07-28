@@ -17,24 +17,18 @@ fi
 
 echo "Updating ${APP_NAME}..."
 
-if [ -d "${INSTALL_DIR}/.git" ]; then
-    git -C "${INSTALL_DIR}" pull --ff-only
-else
-    echo "==> Installation was created from a tarball (no .git directory)."
-    echo "==> Falling back to tarball update..."
-    TMP_TARBALL="$(mktemp /tmp/bookmark-organizer-XXXXXX.tar.gz)"
-    curl -fsSL "https://github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz" -o "${TMP_TARBALL}"
-    echo "==> Extracting..."
-    tar -xzf "${TMP_TARBALL}" -C "${INSTALL_PARENT}"
-    rm -f "${TMP_TARBALL}"
-    EXTRACTED_DIR="$(find "${INSTALL_PARENT}" -maxdepth 1 -type d -name "${APP_NAME}-*" | head -n 1)"
-    if [ -z "$EXTRACTED_DIR" ] || [ ! -d "$EXTRACTED_DIR" ]; then
-        echo "Error: could not find extracted directory." >&2
-        exit 1
-    fi
-    rm -rf "${INSTALL_DIR}"
-    mv "${EXTRACTED_DIR}" "${INSTALL_DIR}"
+TMP_TARBALL="$(mktemp /tmp/bookmark-organizer-XXXXXX.tar.gz)"
+curl -fsSL "https://github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz" -o "${TMP_TARBALL}"
+echo "==> Extracting..."
+tar -xzf "${TMP_TARBALL}" -C "${INSTALL_PARENT}"
+rm -f "${TMP_TARBALL}"
+EXTRACTED_DIR="$(find "${INSTALL_PARENT}" -maxdepth 1 -type d -name "${APP_NAME}-*" | head -n 1)"
+if [ -z "$EXTRACTED_DIR" ] || [ ! -d "$EXTRACTED_DIR" ]; then
+    echo "Error: could not find extracted directory." >&2
+    exit 1
 fi
+rm -rf "${INSTALL_DIR}"
+mv "${EXTRACTED_DIR}" "${INSTALL_DIR}"
 
 echo "Syncing dependencies with uv..."
 cd "${INSTALL_DIR}"
